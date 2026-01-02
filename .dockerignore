@@ -1,0 +1,17 @@
+# Docker build and runtime artifacts
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+venv
+.venv
+.DS_Store
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Output (don't copy, use volume mount)
+output/
