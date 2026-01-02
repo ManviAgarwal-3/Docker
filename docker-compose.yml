@@ -1,0 +1,53 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:18.1-alpine
+    container_name: bw_postgres
+    environment:
+      POSTGRES_USER: etl_user
+      POSTGRES_PASSWORD: etl_password
+      POSTGRES_DB: sales_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - bw_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U etl_user -d sales_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  spark_etl:
+    build: .
+    container_name: bw_spark_etl
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: etl_user
+      POSTGRES_PASSWORD: etl_password
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: sales_db
+      SPARK_MASTER: local[*]
+    volumes:
+      - ./Raw:/app/Raw:ro
+      - ./output:/app/output
+      - ./main.py:/app/main.py
+    networks:
+      - bw_network
+    ports:
+      - "4040:4040"  # Spark UI
+    entrypoint: ["python", "main.py"]
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  bw_network:
+    driver: bridge
